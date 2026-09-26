@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum TransactionSource {
+  cash
+  balance
+  credit
+}
+
+model Transaction {
+  id         String            @id @default(uuid())
+  amount     Int               @default(0)
+  type       TransactionType
+  source     TransactionSource
+  category   String?
+  date       DateTime          @default(now())
+  is_deleted Boolean           @default(false)
+
+  @@map("transactions")
+}
