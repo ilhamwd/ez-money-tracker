@@ -2,6 +2,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 # Copy root .env into backend during build
 COPY .env ./
 
