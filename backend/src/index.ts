@@ -12,6 +12,10 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', message: 'ez-money-tracker API is running' });
+});
+
 // API: POST /record-transaction body: amount, type, source, category
 app.post('/record-transaction', async (req: Request, res: Response) => {
   try {

@@ -16,6 +16,8 @@
 - `postgres/`: Contains the database setup.
   - `postgres/docker-compose.yaml`: Compose file for the PostgreSQL service (reads `../.env`).
   - `postgres/.docker/db`: Local volume mount for persistent PostgreSQL data.
+- `nginx/`: Nginx reverse proxy configuration for domain `ezmoneytracker.biz.id`.
+  - `nginx/ezmoneytracker.biz.id.conf`: Port 80 reverse proxy configured for Cloudflare (passes CF-Connecting-IP, X-Forwarded-Proto, WebSocket support, no 443 required).
 
 ## Database Schema
 **Table:** `transactions` (mapped to `Transaction` model in Prisma)

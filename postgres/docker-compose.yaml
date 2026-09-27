@@ -18,4 +18,3 @@ networks:
   ez-money-network:
     name: ez-money-network
     driver: bridge
-    internal: true
