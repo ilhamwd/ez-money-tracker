@@ -19,14 +19,66 @@ enum TransactionSource {
   credit
 }
 
+model Period {
+  id         String   @id @default(uuid())
+  start_date DateTime @db.Date
+  end_date   DateTime @db.Date
+
+  transactions Transaction[]
+  settings     Settings[]
+  budgets      Budget[]
+
+  @@map("periods")
+}
+
 model Transaction {
-  id         String            @id @default(uuid())
-  amount     Int               @default(0)
-  type       TransactionType
-  source     TransactionSource
-  category   String?
-  date       DateTime          @default(now())
-  is_deleted Boolean           @default(false)
+  id             String            @id @default(uuid())
+  amount         Int               @default(0)
+  type           TransactionType
+  source         TransactionSource
+  category       String?
+  date           DateTime          @default(now())
+  is_deleted     Boolean           @default(false)
+  period_id      String?
+  period         Period?           @relation(fields: [period_id], references: [id])
+  budget_item_id String?
+  budget_item    BudgetItem?       @relation(fields: [budget_item_id], references: [id])
 
   @@map("transactions")
+}
+
+model Settings {
+  id            String  @id @default(uuid())
+  active_period String?
+  period        Period? @relation(fields: [active_period], references: [id])
+
+  @@map("settings")
+}
+
+enum BudgetItemType {
+  income
+  expense
+}
+
+model Budget {
+  id           String       @id @default(uuid())
+  name         String
+  daily_budget Decimal
+  period_id    String?
+  period       Period?      @relation(fields: [period_id], references: [id])
+  items        BudgetItem[]
+
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id           String         @id @default(uuid())
+  budget_id    String
+  budget       Budget         @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+  name         String?
+  type         BudgetItemType
+  amount       Decimal        @default(0)
+  transactions Transaction[]
+
+  @@map("budget_items")
 }

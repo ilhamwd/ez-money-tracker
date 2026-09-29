@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: ez-money-tracker-db
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker/db:/var/lib/postgresql/data
+    networks:
+      - ez-money-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ez-money-tracker-backend
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - ez-money-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ez-money-tracker-frontend
+    environment:
+      - BACKEND_URL=http://backend:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - ez-money-network
+
+networks:
+  ez-money-network:
+    name: ez-money-network
+    driver: bridge

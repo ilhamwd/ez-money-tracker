@@ -13,8 +13,8 @@ build/
 !.env.example
 
 # Database volume & persistent files
-postgres/.docker/db/*
-!postgres/.docker/db/.gitkeep
+.docker/db/*
+!.docker/db/.gitkeep
 
 # Logs
 logs
