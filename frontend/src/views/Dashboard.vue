@@ -167,6 +167,7 @@
           </div>
           
           <div class="space-y-5">
+            <!-- Daily Budget Remaining -->
             <div>
               <div class="flex justify-between items-end mb-2">
                 <div>
@@ -179,11 +180,32 @@
                 <div class="bg-indigo-500 h-2 rounded-full" style="width: 100%"></div>
               </div>
             </div>
-            
+
+            <!-- Daily Budget Excess / Deficit -->
             <div class="pt-2 border-t border-gray-50">
               <div class="flex justify-between items-end mb-2">
                 <div>
-                  <p class="font-semibold text-gray-900 text-sm">Excess / Deficit</p>
+                  <p class="font-semibold text-gray-900 text-sm capitalize">
+                    Daily Budget {{ dailyBudgetPerformance.status }}
+                  </p>
+                  <p class="text-xs text-gray-400">
+                    Day {{ dailyBudgetPerformance.numOfDaysSinceStartPeriod }} &bull; Planned Rp {{ formatNumber(dailyBudgetPerformance.plannedBudgetUntilToday) }} vs spent Rp {{ formatNumber(dailyBudgetPerformance.dailyExpensesUntilToday) }}
+                  </p>
+                </div>
+                <span class="text-sm font-bold" :class="dailyBudgetPerformance.delta >= 0 ? 'text-teal-500' : 'text-rose-500'">
+                  {{ dailyBudgetPerformance.delta >= 0 ? '+' : '-' }}Rp {{ formatNumber(dailyBudgetPerformance.absDelta) }}
+                </span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div class="h-2 rounded-full" :class="dailyBudgetPerformance.delta >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
+              </div>
+            </div>
+            
+            <!-- Overall Excess / Deficit -->
+            <div class="pt-2 border-t border-gray-50">
+              <div class="flex justify-between items-end mb-2">
+                <div>
+                  <p class="font-semibold text-gray-900 text-sm">Overall Excess / Deficit</p>
                   <p class="text-xs text-gray-400">Total projection</p>
                 </div>
                 <span class="text-sm font-bold" :class="excessDeficit >= 0 ? 'text-teal-500' : 'text-rose-500'">
@@ -327,6 +349,58 @@ const dailyBudgetRemaining = computed(() => {
     .reduce((sum: number, t: any) => sum + t.amount, 0);
     
   return totalAllocated - actualDailySpent;
+});
+
+const dailyBudgetPerformance = computed(() => {
+  if (!data.value || !data.value.period || !data.value.period.budgets) {
+    return {
+      plannedBudgetUntilToday: 0,
+      dailyExpensesUntilToday: 0,
+      delta: 0,
+      status: 'excess',
+      absDelta: 0,
+      numOfDaysSinceStartPeriod: 0
+    };
+  }
+
+  const period = data.value.period;
+  const startDate = new Date(period.start_date);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(period.end_date);
+  endDate.setHours(23, 59, 59, 999);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay) + 1;
+
+  let numOfDaysSinceStartPeriod = 0;
+  if (today >= startDate) {
+    const elapsed = Math.floor((today.getTime() - startDate.getTime()) / msPerDay) + 1;
+    numOfDaysSinceStartPeriod = Math.min(totalDays, Math.max(1, elapsed));
+  }
+
+  const totalDailyBudget = period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
+  const plannedBudgetUntilToday = totalDailyBudget * numOfDaysSinceStartPeriod;
+
+  const dailyExpensesUntilToday = period.transactions
+    .filter((t: any) => t.type === 'expense' && (t.category || '').toLowerCase() === 'daily')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+  const delta = plannedBudgetUntilToday - dailyExpensesUntilToday;
+  const status = delta < 0 ? 'deficit' : 'excess';
+  const absDelta = Math.abs(delta);
+
+  return {
+    plannedBudgetUntilToday,
+    dailyExpensesUntilToday,
+    delta,
+    status,
+    absDelta,
+    numOfDaysSinceStartPeriod
+  };
 });
 
 const excessDeficit = computed(() => {
