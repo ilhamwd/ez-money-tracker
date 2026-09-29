@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
-    container_name: ez-money-tracker-db
+    container_name: emt-db
     env_file:
       - .env
     ports:
@@ -15,8 +15,8 @@ services:
     restart: unless-stopped
 
   backend:
-    image: iilhamwd/my-images:ez-money-tracker-backend
-    container_name: ez-money-tracker-backend
+    image: iilhamwd/my-images:emt-backend
+    container_name: emt-be
     env_file:
       - .env
     ports:
@@ -27,8 +27,8 @@ services:
       - ez-money-network
 
   frontend:
-    image: iilhamwd/my-images:ez-money-tracker-frontend
-    container_name: ez-money-tracker-frontend
+    image: iilhamwd/my-images:emt-fe
+    container_name: emt-fe
     environment:
       - BACKEND_URL=http://backend:3000
     ports:
