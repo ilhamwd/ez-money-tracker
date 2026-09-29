@@ -70,7 +70,7 @@ Example breakdown:
   final now = DateTime.now();
   final numOfDaysSincePeriodStart = now.difference(period.startDate).inDays;
   final allocatedBudget = budget.dailyBudget * numOfDaysSincePeriodStart;
-  final actualSpending = transactions.where((e) => e.type == "daily").fold<double>(0, (sum, e) => sum + e.amount);
+  final actualSpending = transactions.where((e) => e.category == "daily").fold<double>(0, (sum, e) => sum + e.amount);
   final message = "${allocatedBudget >= actualSpending ? "Excess" : "Deficit"}: ${(allocatedBudget - actualSpending).abs()}";
   ```
 - **Example Usecase:**

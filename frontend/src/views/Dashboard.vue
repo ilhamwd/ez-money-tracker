@@ -30,8 +30,8 @@
     
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      <!-- Left Column (Wider) -->
-      <div class="lg:col-span-2 space-y-8">
+      <!-- Left Column (Wider on desktop, below overview on mobile) -->
+      <div class="lg:col-span-2 space-y-8 order-2 lg:order-1">
         
         <!-- Expenses Card (Like My Tasks) -->
         <div class="bg-white rounded-3xl p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-50">
@@ -127,8 +127,8 @@
         
       </div>
       
-      <!-- Right Column -->
-      <div class="space-y-8">
+      <!-- Right Column (Top on mobile, right side on desktop) -->
+      <div class="space-y-8 order-1 lg:order-2">
         
         <!-- Summary / Overview Card -->
         <div class="bg-gradient-to-br from-indigo-50 to-white rounded-3xl p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-indigo-50">
@@ -323,7 +323,7 @@ const dailyBudgetRemaining = computed(() => {
   const totalAllocated = totalDailyBudget * totalDays;
   
   const actualDailySpent = period.transactions
-    .filter((t: any) => t.type === 'expense' && !t.budget_item_id)
+    .filter((t: any) => (t.category || '').toLowerCase() === 'daily')
     .reduce((sum: number, t: any) => sum + t.amount, 0);
     
   return totalAllocated - actualDailySpent;
