@@ -15,9 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: iilhamwd/my-images:ez-money-tracker-backend
     container_name: ez-money-tracker-backend
     env_file:
       - .env
@@ -29,9 +27,7 @@ services:
       - ez-money-network
 
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    image: iilhamwd/my-images:ez-money-tracker-frontend
     container_name: ez-money-tracker-frontend
     environment:
       - BACKEND_URL=http://backend:3000
