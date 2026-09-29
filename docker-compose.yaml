@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: iilhamwd/my-images:emt-backend
+    image: iilhamwd/my-images:emt-be
     container_name: emt-be
     env_file:
       - .env
