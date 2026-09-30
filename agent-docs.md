@@ -24,12 +24,14 @@
   - `frontend/vite.config.ts`: Vite 8 configuration with Tailwind v4 plugin, reverse proxy mapping (`/api` -> backend), and `server.allowedHosts: true`.
   - `frontend/src/api.ts`: Centralized API service with resilient fallback mechanisms.
   - `frontend/src/App.vue`: App shell with modern Google/Prodify-style sidebar navigation.
+  - `frontend/src/components/BudgetItemSelector.vue`: Reusable radio selector for budget items with remaining budget calculations.
   - `frontend/src/views/Dashboard.vue`: Main dashboard showing financial overview, budget health cards, and categorized expense/income tables.
   - `frontend/src/views/Transactions.vue`: Unified transactions log for the active period in a single card with search and filters.
-  - `frontend/src/views/Budgets.vue`: Budget overview list with responsive table (desktop) / card (mobile) layout.
-  - `frontend/src/views/BudgetPlanner.vue`: Detailed budget planning view with inline item creation, inline budget renaming, and deletion.
+  - `frontend/src/views/Budgets.vue`: Budget overview list with responsive table (desktop) / card (mobile) layout, with quick actions to duplicate (including items) and delete budgets.
+  - `frontend/src/views/BudgetPlanner.vue`: Detailed budget planning view with separated Income and Expense cards, inline item creation, inline budget renaming, budget duplication, and budget deletion.
   - `frontend/src/views/Periods.vue`: Period management view with active-period toggle, date picker validation, and period-budget assignment.
-  - `frontend/src/views/RecordTransaction.vue`: Dedicated transaction logger for Siri Shortcuts via URL query parameters.
+  - `frontend/src/views/RecordTransaction.vue`: General transaction recording form with category selection (daily, budget, other) and period assignment.
+  - `frontend/src/views/RecordTransactionSiri.vue`: Dedicated quick transaction logger for Siri Shortcuts via URL query parameters.
 - `postgres/`: Database container volume mapping (`postgres/.docker/db`).
 - `nginx/`: Nginx proxy configuration files.
 
@@ -134,12 +136,6 @@ Calculates projected funds left after covering remaining expenses:
 2. **With Receivable:**
    `remainingBudgetWithReceivable = currentBalance - remainingExpense + remainingIncome`
 
-### 6. Overall Monthly Excess / Deficit (Total Projection)
-Static projected net excess or deficit based on the planned budget for the period:
-- `allBudgetedIncomes = sum of budgeted income items`
-- `allBudgetedExpense = sum of budgeted expense items + (daily_budget * total_days_in_period)`
-- `totalProjection = allBudgetedIncomes - allBudgetedExpense`
-
 ---
 
 ## API Endpoints
@@ -159,6 +155,8 @@ Static projected net excess or deficit based on the planned budget for the perio
 - `GET /budgets/:id`: Retrieves budget by ID with items and period.
 - `POST /budgets`: Creates a budget (`{ name: string, daily_budget: number, period_id?: string | null }`).
 - `PUT /budgets/:id`: Partially or fully updates a budget (`{ name?: string, daily_budget?: number, period_id?: string | null }`).
+- `POST /budgets/:id/duplicate`: Duplicates a budget and all its associated budget items (`{ name?: string, period_id?: string | null }`).
+- `DELETE /budgets/:id`: Deletes a budget (safely unlinks any transactions referencing its budget items before deletion).
 
 ### Budget Items
 - `POST /budgets/:id/items`: Adds an item (`{ name: string, type: "income" | "expense", amount: number }`).
@@ -184,9 +182,9 @@ Static projected net excess or deficit based on the planned budget for the perio
 ---
 
 ## Siri Shortcuts Integration
-The route `/budget/record-transaction` handles automated quick-recording triggered by Siri Shortcuts:
+The route `/record-transaction/siri` (with legacy fallback `/budget/record-transaction`) handles automated quick-recording triggered by Siri Shortcuts:
 - **Query Parameters:** `?amount=150000&type=expense&source=cash`
-- **UI Flow:** Displays the transaction parameters as read-only cards, renders a selectable radio list of matching budget items for the active period, and prompts the user to confirm.
+- **UI Flow:** Displays the transaction parameters as read-only cards, renders a selectable radio list of matching budget items for the active period using `BudgetItemSelector`, and prompts the user to confirm.
 
 ---
 

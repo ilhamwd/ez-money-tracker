@@ -30,7 +30,10 @@ export function setupRoutes(app: express.Express, prisma: PrismaClient) {
   // --- PERIODS ---
   app.get('/periods', async (req, res) => {
     const periods = await prisma.period.findMany({
-      include: { budgets: true },
+      include: { 
+        budgets: { include: { items: true } },
+        transactions: { where: { is_deleted: false } }
+      },
       orderBy: { start_date: 'desc' }
     });
     res.json(periods);
@@ -122,6 +125,73 @@ export function setupRoutes(app: express.Express, prisma: PrismaClient) {
     } catch (error) {
       console.error('Error updating budget:', error);
       res.status(500).json({ error: 'Failed to update budget' });
+    }
+  });
+
+  app.post('/budgets/:id/duplicate', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const original = await prisma.budget.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!original) {
+        return res.status(404).json({ error: 'Budget not found' });
+      }
+
+      const newName = req.body?.name || `${original.name} (Copy)`;
+      const newPeriodId = req.body?.period_id !== undefined ? req.body.period_id : null;
+
+      const duplicated = await prisma.budget.create({
+        data: {
+          name: newName,
+          daily_budget: original.daily_budget,
+          period_id: newPeriodId,
+          items: {
+            create: original.items.map((item) => ({
+              name: item.name,
+              type: item.type,
+              amount: item.amount,
+            })),
+          },
+        },
+        include: { items: true, period: true },
+      });
+
+      res.json(duplicated);
+    } catch (error) {
+      console.error('Error duplicating budget:', error);
+      res.status(500).json({ error: 'Failed to duplicate budget' });
+    }
+  });
+
+  app.delete('/budgets/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const budget = await prisma.budget.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+      if (!budget) {
+        return res.status(404).json({ error: 'Budget not found' });
+      }
+
+      const itemIds = budget.items.map((i) => i.id);
+      if (itemIds.length > 0) {
+        await prisma.transaction.updateMany({
+          where: { budget_item_id: { in: itemIds } },
+          data: { budget_item_id: null },
+        });
+      }
+
+      await prisma.budget.delete({
+        where: { id },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+      res.status(500).json({ error: 'Failed to delete budget' });
     }
   });
 

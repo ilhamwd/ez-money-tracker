@@ -24,6 +24,7 @@
             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Income</th>
             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Expense</th>
             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Remaining</th>
+            <th class="px-6 py-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
@@ -43,6 +44,28 @@
                 Rp {{ formatNumber(b.remaining) }}
               </span>
             </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center text-sm" @click.stop>
+              <div class="flex items-center justify-center gap-1">
+                <button 
+                  @click="duplicate(b)" 
+                  class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  title="Duplicate Budget"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+                <button 
+                  @click="removeBudget(b)" 
+                  class="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                  title="Delete Budget"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -54,8 +77,34 @@
     <!-- Mobile view -->
     <div v-if="!loading" class="md:hidden space-y-4">
       <div v-for="b in processedBudgets" :key="b.id" class="bg-white p-5 rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-gray-50 cursor-pointer active:scale-95 transition-transform" @click="$router.push('/budget/planner/' + b.id)">
-        <h3 class="font-bold text-xl text-gray-900">{{ b.name }}</h3>
-        <p class="text-xs text-gray-500 mb-4 mt-1 font-medium bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">{{ b.period ? formatDate(b.period.start_date) + ' - ' + formatDate(b.period.end_date) : 'No period' }}</p>
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <h3 class="font-bold text-xl text-gray-900">{{ b.name }}</h3>
+            <p class="text-xs text-gray-500 mt-1 font-medium bg-gray-50 inline-block px-2 py-1 rounded border border-gray-100">
+              {{ b.period ? formatDate(b.period.start_date) + ' - ' + formatDate(b.period.end_date) : 'No period' }}
+            </p>
+          </div>
+          <div class="flex items-center gap-1" @click.stop>
+            <button 
+              @click="duplicate(b)" 
+              class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+              title="Duplicate Budget"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+            </button>
+            <button 
+              @click="removeBudget(b)" 
+              class="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+              title="Delete Budget"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
         <div class="grid grid-cols-2 gap-3 mb-4">
           <div class="bg-emerald-50 rounded-2xl p-3">
             <span class="block text-xs text-emerald-600 font-medium mb-1">Income</span> 
@@ -108,7 +157,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchBudgets, createBudget, fetchPeriods } from '../api';
+import { fetchBudgets, createBudget, fetchPeriods, duplicateBudget, deleteBudget } from '../api';
 
 const router = useRouter();
 const budgets = ref<any[]>([]);
@@ -122,7 +171,7 @@ const newBudget = ref({
   period_id: null as string | null
 });
 
-onMounted(async () => {
+const loadBudgets = async () => {
   try {
     const [bRes, pRes] = await Promise.all([fetchBudgets(), fetchPeriods()]);
     budgets.value = bRes;
@@ -132,7 +181,9 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+};
+
+onMounted(loadBudgets);
 
 const processedBudgets = computed(() => {
   return budgets.value.map(b => {
@@ -177,6 +228,27 @@ const submitBudget = async () => {
     router.push('/budget/planner/' + created.id);
   } catch (err) {
     alert('Failed to create budget');
+  }
+};
+
+const duplicate = async (b: any) => {
+  try {
+    await duplicateBudget(b.id);
+    await loadBudgets();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to duplicate budget');
+  }
+};
+
+const removeBudget = async (b: any) => {
+  if (!confirm(`Are you sure you want to delete budget "${b.name}"?`)) return;
+  try {
+    await deleteBudget(b.id);
+    budgets.value = budgets.value.filter(item => item.id !== b.id);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to delete budget');
   }
 };
 </script>

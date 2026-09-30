@@ -9,7 +9,7 @@
         <h2 class="text-3xl font-medium text-teal-400 mt-1 tracking-tight">Have a great {{ currentDayName }}</h2>
         
         <div class="flex flex-wrap gap-3 mt-6">
-          <button @click="$router.push('/budget/record-transaction')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all shadow-[0_4px_14px_0_rgb(79,70,229,0.39)]">
+          <button @click="$router.push('/record-transaction')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 transition-all shadow-[0_4px_14px_0_rgb(79,70,229,0.39)] cursor-pointer">
             <span class="text-lg leading-none mt-[-2px]">✧</span> Record Transaction
           </button>
           <button @click="$router.push('/budget')" class="bg-white text-gray-700 border border-gray-200 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
@@ -220,22 +220,6 @@
               </div>
               <div class="w-full bg-gray-100 rounded-full h-2">
                 <div class="h-2 rounded-full" :class="dailyBudgetPerformance.delta >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
-              </div>
-            </div>
-            
-            <!-- Overall Excess / Deficit -->
-            <div class="pt-2 border-t border-gray-50">
-              <div class="flex justify-between items-end mb-2">
-                <div>
-                  <p class="font-semibold text-gray-900 text-sm">Overall Excess / Deficit</p>
-                  <p class="text-xs text-gray-400">Total projection</p>
-                </div>
-                <span class="text-sm font-bold" :class="totalProjection >= 0 ? 'text-teal-500' : 'text-rose-500'">
-                  {{ totalProjection >= 0 ? '+' : '-' }}Rp {{ formatNumber(Math.abs(totalProjection)) }}
-                </span>
-              </div>
-              <div class="w-full bg-gray-100 rounded-full h-2">
-                <div class="h-2 rounded-full" :class="totalProjection >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
               </div>
             </div>
 

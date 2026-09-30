@@ -156,3 +156,22 @@ export async function deleteTransaction(id: string) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function duplicateBudget(id: string, data?: { name?: string; period_id?: string | null }) {
+  const res = await fetch(`${API_BASE}/budgets/${id}/duplicate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data || {})
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteBudget(id: string) {
+  const res = await fetch(`${API_BASE}/budgets/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
