@@ -141,3 +141,18 @@ export async function assignBudgetToPeriod(periodId: string, budgetId: string | 
 
   return { success: true };
 }
+
+export async function fetchTransactions(periodId?: string) {
+  const url = periodId ? `${API_BASE}/transactions?period_id=${periodId}` : `${API_BASE}/transactions`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteTransaction(id: string) {
+  const res = await fetch(`${API_BASE}/transactions/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

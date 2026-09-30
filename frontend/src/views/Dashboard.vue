@@ -172,7 +172,7 @@
               <div class="flex justify-between items-end mb-2">
                 <div>
                   <p class="font-semibold text-gray-900 text-sm">Daily Budget Remaining</p>
-                  <p class="text-xs text-gray-400">For the rest of the period</p>
+                  <p class="text-xs text-gray-400">{{ remainingDays }} days remaining &bull; For the rest of the period</p>
                 </div>
                 <span class="text-sm font-bold text-indigo-600">Rp {{ formatNumber(dailyBudgetRemaining) }}</span>
               </div>
@@ -181,11 +181,11 @@
               </div>
             </div>
 
-            <!-- Remaining Daily Budget Today -->
+            <!-- Remaining Daily Budget -->
             <div class="pt-2 border-t border-gray-50">
               <div class="flex justify-between items-end mb-2">
                 <div>
-                  <p class="font-semibold text-gray-900 text-sm">Remaining Daily Budget Today</p>
+                  <p class="font-semibold text-gray-900 text-sm">Remaining Daily Budget</p>
                   <p class="text-xs text-gray-400">
                     Daily budget Rp {{ formatNumber(dailyBudgetTodayData.dailyBudget) }} &bull; Spent today Rp {{ formatNumber(dailyBudgetTodayData.spentToday) }}
                   </p>
@@ -230,12 +230,12 @@
                   <p class="font-semibold text-gray-900 text-sm">Overall Excess / Deficit</p>
                   <p class="text-xs text-gray-400">Total projection</p>
                 </div>
-                <span class="text-sm font-bold" :class="excessDeficit >= 0 ? 'text-teal-500' : 'text-rose-500'">
-                  Rp {{ formatNumber(excessDeficit) }}
+                <span class="text-sm font-bold" :class="totalProjection >= 0 ? 'text-teal-500' : 'text-rose-500'">
+                  {{ totalProjection >= 0 ? '+' : '-' }}Rp {{ formatNumber(Math.abs(totalProjection)) }}
                 </span>
               </div>
               <div class="w-full bg-gray-100 rounded-full h-2">
-                <div class="h-2 rounded-full" :class="excessDeficit >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
+                <div class="h-2 rounded-full" :class="totalProjection >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
               </div>
             </div>
 
@@ -266,12 +266,12 @@
                 </div>
               </div>
 
-              <!-- Bar 2: With Receivable (Pending Income) -->
+              <!-- Bar 2: With Receivable -->
               <div class="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
                 <div class="flex justify-between items-end mb-2">
                   <div>
-                    <span class="text-xs font-semibold text-gray-700">With Receivable (Pending Income)</span>
-                    <p class="text-[11px] text-gray-400 mt-0.5">Includes +Rp {{ formatNumber(remainingIncome) }} pending income</p>
+                    <span class="text-xs font-semibold text-gray-700">With Receivable</span>
+                    <p class="text-[11px] text-gray-400 mt-0.5">+Rp {{ formatNumber(remainingIncome) }} pending</p>
                   </div>
                   <span class="text-sm font-bold" :class="remainingBudgetWithReceivable >= 0 ? 'text-teal-500' : 'text-rose-500'">
                     {{ remainingBudgetWithReceivable >= 0 ? '+' : '-' }}Rp {{ formatNumber(Math.abs(remainingBudgetWithReceivable)) }}
@@ -402,37 +402,48 @@ const getRemainingBadgeClass = (item: any) => {
   return 'bg-amber-50 text-amber-600';
 };
 
-const dailyBudgetRemaining = computed(() => {
-  if (!data.value || !data.value.period || !data.value.period.budgets) return 0;
-  
+const totalDaysInPeriod = computed(() => {
+  if (!data.value || !data.value.period) return 0;
   const period = data.value.period;
   const startDate = new Date(period.start_date);
+  startDate.setHours(0, 0, 0, 0);
   const endDate = new Date(period.end_date);
-  const now = new Date();
-  
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24)) + 1;
-  const totalDailyBudget = period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
-  const totalAllocated = totalDailyBudget * totalDays;
-  
-  const actualDailySpent = period.transactions
-    .filter((t: any) => (t.category || '').toLowerCase() === 'daily')
-    .reduce((sum: number, t: any) => sum + t.amount, 0);
-    
-  return totalAllocated - actualDailySpent;
+  endDate.setHours(23, 59, 59, 999);
+  const msPerDay = 1000 * 3600 * 24;
+  return Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay);
+});
+
+const remainingDays = computed(() => {
+  if (!data.value || !data.value.period) return 0;
+  const period = data.value.period;
+  const startDate = new Date(period.start_date);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(period.end_date);
+  endDate.setHours(23, 59, 59, 999);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (today > endDate) return 0;
+  const msPerDay = 1000 * 3600 * 24;
+  if (today < startDate) {
+    return Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay);
+  }
+  return Math.floor((endDate.getTime() - today.getTime()) / msPerDay) + 1;
+});
+
+const totalDailyBudget = computed(() => {
+  if (!data.value || !data.value.period || !data.value.period.budgets) return 0;
+  return data.value.period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
+});
+
+const dailyBudgetRemaining = computed(() => {
+  // daily_budget * remaining_days
+  return totalDailyBudget.value * remainingDays.value;
 });
 
 const dailyBudgetRemainingBarWidth = computed(() => {
-  if (!data.value || !data.value.period || !data.value.period.budgets) return 0;
-  const period = data.value.period;
-  const startDate = new Date(period.start_date);
-  const endDate = new Date(period.end_date);
-  const msPerDay = 1000 * 3600 * 24;
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay) + 1;
-  const totalDailyBudget = period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
-  const totalAllocated = totalDailyBudget * totalDays;
-  if (totalAllocated <= 0) return 0;
-  if (dailyBudgetRemaining.value <= 0) return 0;
-  return Math.min(100, Math.max(5, Math.round((dailyBudgetRemaining.value / totalAllocated) * 100)));
+  if (totalDaysInPeriod.value <= 0) return 0;
+  return Math.min(100, Math.max(5, Math.round((remainingDays.value / totalDaysInPeriod.value) * 100)));
 });
 
 const dailyBudgetTodayData = computed(() => {
@@ -528,14 +539,21 @@ const dailyBudgetPerformance = computed(() => {
   };
 });
 
-const excessDeficit = computed(() => {
-  if (!data.value) return 0;
-  const balance = data.value.balances.total;
-  const receivable = incomeItems.value.reduce((sum, i) => sum + i.remaining, 0);
-  const remainingExpenses = expenseItems.value.reduce((sum, i) => sum + i.remaining, 0);
-  
-  return (balance + receivable) - remainingExpenses - dailyBudgetRemaining.value;
+const allBudgetedIncomes = computed(() => {
+  return incomeItems.value.reduce((sum, i) => sum + Number(i.amount), 0);
 });
+
+const allBudgetedExpenses = computed(() => {
+  const itemExpenses = expenseItems.value.reduce((sum, i) => sum + Number(i.amount), 0);
+  const plannedDailyBudget = totalDailyBudget.value * totalDaysInPeriod.value;
+  return itemExpenses + plannedDailyBudget;
+});
+
+const totalProjection = computed(() => {
+  return allBudgetedIncomes.value - allBudgetedExpenses.value;
+});
+
+const excessDeficit = totalProjection;
 
 const currentBalance = computed(() => {
   return data.value?.balances?.total || 0;

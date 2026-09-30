@@ -188,7 +188,11 @@ export function setupRoutes(app: express.Express, prisma: PrismaClient) {
       where: { id: settings.active_period },
       include: { 
         budgets: { include: { items: true } },
-        transactions: true 
+        transactions: {
+          where: { is_deleted: false },
+          include: { budget_item: true },
+          orderBy: { date: 'desc' }
+        } 
       }
     });
     if (!period) return res.status(404).json({ error: 'Period not found' });
@@ -206,5 +210,42 @@ export function setupRoutes(app: express.Express, prisma: PrismaClient) {
       period,
       balances: { cash, balance, credit, total: cash + balance + credit }
     });
+  });
+
+  app.get('/transactions', async (req, res) => {
+    try {
+      const settings = await prisma.settings.findFirst();
+      const periodId = (req.query.period_id as string) || settings?.active_period;
+      if (!periodId) {
+        return res.json([]);
+      }
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          period_id: periodId,
+          is_deleted: false,
+        },
+        include: {
+          budget_item: true,
+        },
+        orderBy: { date: 'desc' },
+      });
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
+  app.delete('/transactions/:id', async (req, res) => {
+    try {
+      await prisma.transaction.update({
+        where: { id: req.params.id },
+        data: { is_deleted: true },
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      res.status(500).json({ error: 'Failed to delete transaction' });
+    }
   });
 }
