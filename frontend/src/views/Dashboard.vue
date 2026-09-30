@@ -177,7 +177,29 @@
                 <span class="text-sm font-bold text-indigo-600">Rp {{ formatNumber(dailyBudgetRemaining) }}</span>
               </div>
               <div class="w-full bg-gray-100 rounded-full h-2">
-                <div class="bg-indigo-500 h-2 rounded-full" style="width: 100%"></div>
+                <div class="bg-indigo-500 h-2 rounded-full transition-all" :style="{ width: dailyBudgetRemainingBarWidth + '%' }"></div>
+              </div>
+            </div>
+
+            <!-- Remaining Daily Budget Today -->
+            <div class="pt-2 border-t border-gray-50">
+              <div class="flex justify-between items-end mb-2">
+                <div>
+                  <p class="font-semibold text-gray-900 text-sm">Remaining Daily Budget Today</p>
+                  <p class="text-xs text-gray-400">
+                    Daily budget Rp {{ formatNumber(dailyBudgetTodayData.dailyBudget) }} &bull; Spent today Rp {{ formatNumber(dailyBudgetTodayData.spentToday) }}
+                  </p>
+                </div>
+                <span class="text-sm font-bold" :class="dailyBudgetTodayData.remainingToday >= 0 ? 'text-teal-500' : 'text-rose-500'">
+                  {{ dailyBudgetTodayData.remainingToday >= 0 ? '' : '-' }}Rp {{ formatNumber(Math.abs(dailyBudgetTodayData.remainingToday)) }}
+                </span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div 
+                  class="h-2 rounded-full transition-all" 
+                  :class="dailyBudgetTodayData.remainingToday >= 0 ? 'bg-teal-400' : 'bg-rose-400'" 
+                  :style="{ width: dailyBudgetTodayBarWidth + '%' }">
+                </div>
               </div>
             </div>
 
@@ -214,6 +236,54 @@
               </div>
               <div class="w-full bg-gray-100 rounded-full h-2">
                 <div class="h-2 rounded-full" :class="excessDeficit >= 0 ? 'bg-teal-400' : 'bg-rose-400'" style="width: 100%"></div>
+              </div>
+            </div>
+
+            <!-- Remaining Monthly Budget (2 progress bars) -->
+            <div class="pt-3 border-t border-gray-100 space-y-3.5">
+              <div>
+                <p class="font-semibold text-gray-900 text-sm">Remaining Monthly Budget</p>
+                <p class="text-xs text-gray-400">Projected budget based on current balance & remaining expenses</p>
+              </div>
+
+              <!-- Bar 1: Without Receivable -->
+              <div class="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
+                <div class="flex justify-between items-end mb-2">
+                  <div>
+                    <span class="text-xs font-semibold text-gray-700">Without Receivable</span>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Balance Rp {{ formatNumber(currentBalance) }} &minus; Expenses Rp {{ formatNumber(remainingExpense) }}</p>
+                  </div>
+                  <span class="text-sm font-bold" :class="remainingBudgetWithoutReceivable >= 0 ? 'text-teal-500' : 'text-rose-500'">
+                    {{ remainingBudgetWithoutReceivable >= 0 ? '+' : '-' }}Rp {{ formatNumber(Math.abs(remainingBudgetWithoutReceivable)) }}
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200/80 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all" 
+                    :class="remainingBudgetWithoutReceivable >= 0 ? 'bg-teal-400' : 'bg-rose-400'" 
+                    :style="{ width: remainingWithoutReceivableBarWidth + '%' }">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bar 2: With Receivable (Pending Income) -->
+              <div class="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
+                <div class="flex justify-between items-end mb-2">
+                  <div>
+                    <span class="text-xs font-semibold text-gray-700">With Receivable (Pending Income)</span>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Includes +Rp {{ formatNumber(remainingIncome) }} pending income</p>
+                  </div>
+                  <span class="text-sm font-bold" :class="remainingBudgetWithReceivable >= 0 ? 'text-teal-500' : 'text-rose-500'">
+                    {{ remainingBudgetWithReceivable >= 0 ? '+' : '-' }}Rp {{ formatNumber(Math.abs(remainingBudgetWithReceivable)) }}
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200/80 rounded-full h-2">
+                  <div 
+                    class="h-2 rounded-full transition-all" 
+                    :class="remainingBudgetWithReceivable >= 0 ? 'bg-teal-400' : 'bg-rose-400'" 
+                    :style="{ width: remainingWithReceivableBarWidth + '%' }">
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -351,6 +421,61 @@ const dailyBudgetRemaining = computed(() => {
   return totalAllocated - actualDailySpent;
 });
 
+const dailyBudgetRemainingBarWidth = computed(() => {
+  if (!data.value || !data.value.period || !data.value.period.budgets) return 0;
+  const period = data.value.period;
+  const startDate = new Date(period.start_date);
+  const endDate = new Date(period.end_date);
+  const msPerDay = 1000 * 3600 * 24;
+  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay) + 1;
+  const totalDailyBudget = period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
+  const totalAllocated = totalDailyBudget * totalDays;
+  if (totalAllocated <= 0) return 0;
+  if (dailyBudgetRemaining.value <= 0) return 0;
+  return Math.min(100, Math.max(5, Math.round((dailyBudgetRemaining.value / totalAllocated) * 100)));
+});
+
+const dailyBudgetTodayData = computed(() => {
+  if (!data.value || !data.value.period || !data.value.period.budgets) {
+    return {
+      dailyBudget: 0,
+      spentToday: 0,
+      remainingToday: 0
+    };
+  }
+
+  const period = data.value.period;
+  const now = new Date();
+  const isSameDay = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d.getFullYear() === now.getFullYear() &&
+           d.getMonth() === now.getMonth() &&
+           d.getDate() === now.getDate();
+  };
+
+  const dailyBudget = period.budgets.reduce((sum: number, b: any) => sum + Number(b.daily_budget), 0);
+
+  const spentToday = (period.transactions || [])
+    .filter((t: any) => t.type === 'expense' && (t.category || '').toLowerCase() === 'daily' && isSameDay(t.date))
+    .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+
+  const remainingToday = dailyBudget - spentToday;
+
+  return {
+    dailyBudget,
+    spentToday,
+    remainingToday
+  };
+});
+
+const dailyBudgetTodayBarWidth = computed(() => {
+  const { dailyBudget, remainingToday } = dailyBudgetTodayData.value;
+  if (!dailyBudget || dailyBudget <= 0) return 0;
+  if (remainingToday <= 0) return 100;
+  return Math.min(100, Math.max(5, Math.round((remainingToday / dailyBudget) * 100)));
+});
+
 const dailyBudgetPerformance = computed(() => {
   if (!data.value || !data.value.period || !data.value.period.budgets) {
     return {
@@ -410,6 +535,53 @@ const excessDeficit = computed(() => {
   const remainingExpenses = expenseItems.value.reduce((sum, i) => sum + i.remaining, 0);
   
   return (balance + receivable) - remainingExpenses - dailyBudgetRemaining.value;
+});
+
+const currentBalance = computed(() => {
+  return data.value?.balances?.total || 0;
+});
+
+const remainingExpense = computed(() => {
+  const expenseRemaining = expenseItems.value.reduce((sum, i) => sum + Number(i.remaining), 0);
+  return expenseRemaining + dailyBudgetRemaining.value;
+});
+
+const remainingIncome = computed(() => {
+  return incomeItems.value.reduce((sum, i) => sum + Number(i.remaining), 0);
+});
+
+const remainingBudgetWithoutReceivable = computed(() => {
+  return currentBalance.value - remainingExpense.value;
+});
+
+const remainingBudgetWithReceivable = computed(() => {
+  return remainingBudgetWithoutReceivable.value + remainingIncome.value;
+});
+
+const remainingWithoutReceivableBarWidth = computed(() => {
+  const balance = currentBalance.value;
+  const rem = remainingBudgetWithoutReceivable.value;
+  if (rem >= 0) {
+    if (balance <= 0) return 100;
+    return Math.min(100, Math.max(5, Math.round((rem / balance) * 100)));
+  } else {
+    const expense = remainingExpense.value;
+    if (expense <= 0) return 100;
+    return Math.min(100, Math.max(5, Math.round((Math.abs(rem) / expense) * 100)));
+  }
+});
+
+const remainingWithReceivableBarWidth = computed(() => {
+  const totalFunds = currentBalance.value + remainingIncome.value;
+  const rem = remainingBudgetWithReceivable.value;
+  if (rem >= 0) {
+    if (totalFunds <= 0) return 100;
+    return Math.min(100, Math.max(5, Math.round((rem / totalFunds) * 100)));
+  } else {
+    const expense = remainingExpense.value;
+    if (expense <= 0) return 100;
+    return Math.min(100, Math.max(5, Math.round((Math.abs(rem) / expense) * 100)));
+  }
 });
 
 const openRecordModal = (item: any) => {
